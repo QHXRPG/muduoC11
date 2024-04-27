@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
     if (argc != 3)
     {
         printf("usage:./client ip port\n"); 
-        printf("example:./client 192.168.71.131 5085\n\n"); 
+        printf("example:./client 192.168.150.128 5085\n\n"); 
         return -1;
     }
 

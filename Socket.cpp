@@ -1,8 +1,4 @@
 #include "Socket.h"
-#include <stdio.h>
-#include <errno.h>
-#include <cstdlib>
-
 
 // 创建一个非阻塞的socket。
 int createnonblocking()
@@ -30,7 +26,8 @@ Socket::~Socket()
     ::close(fd_);
 }
 
-int Socket::fd() const                              // 返回fd_成员。
+// 返回fd_成员。
+int Socket::fd() const                              
 {
     return fd_;
 }
@@ -63,15 +60,19 @@ void Socket::bind(const InetAddress& servaddr)
 {
     if (::bind(fd_,servaddr.addr(),sizeof(sockaddr)) < 0 )
     {
-        perror("bind() failed"); close(fd_); exit(-1);
+        perror("bind() failed"); 
+        close(fd_); 
+        exit(-1);
     }
 }
 
 void Socket::listen(int nn)
 {
-    if (::listen(fd_, nn) != 0 )        // 在高并发的网络服务器中，第二个参数要大一些。
+    if (::listen(fd_,nn) != 0 )        // 在高并发的网络服务器中，第二个参数要大一些。
     {
-        perror("listen() failed"); close(fd_); exit(-1);
+        perror("listen() failed"); 
+        close(fd_); 
+        exit(-1);
     }
 }
 
@@ -79,7 +80,7 @@ int Socket::accept(InetAddress& clientaddr)
 {
     sockaddr_in peeraddr;
     socklen_t len = sizeof(peeraddr);
-    int clientfd = accept4(fd_, (sockaddr*)&peeraddr, &len, SOCK_NONBLOCK);
+    int clientfd = accept4(fd_,(sockaddr*)&peeraddr,&len,SOCK_NONBLOCK);
 
     clientaddr.setaddr(peeraddr);             // 客户端的地址和协议。
 

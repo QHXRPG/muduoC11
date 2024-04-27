@@ -26,5 +26,5 @@ public:
     void setkeepalive(bool on);       // 设置SO_KEEPALIVE选项。
     void bind(const InetAddress& servaddr);        // 服务端的socket将调用此函数。
     void listen(int nn=128);                                    // 服务端的socket将调用此函数。
-    int   accept(InetAddress& clientaddr);            // 服务端的socket将调用此函数。
+    int  accept(InetAddress& clientaddr);            // 服务端的socket将调用此函数。
 };

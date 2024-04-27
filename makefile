@@ -1,10 +1,10 @@
 all:client tcpepoll
 
 client:client.cpp
-	g++ -std=c++11 -g -o client client.cpp
+	g++ -g  -std=c++11 -o client client.cpp
 
-tcpepoll:tcpepoll.cpp InetAddress.cpp Socket.cpp Epoll.cpp Channel.cpp EventLoop.cpp
-	g++ -std=c++11 -g -o tcpepoll tcpepoll.cpp InetAddress.cpp Socket.cpp Epoll.cpp Channel.cpp EventLoop.cpp
+tcpepoll:tcpepoll.cpp InetAddress.cpp Socket.cpp Epoll.cpp Channel.cpp EventLoop.cpp TcpServer.cpp Acceptor.cpp Connection.cpp
+	g++ -g -std=c++11 -o tcpepoll tcpepoll.cpp InetAddress.cpp Socket.cpp Epoll.cpp Channel.cpp EventLoop.cpp TcpServer.cpp Acceptor.cpp Connection.cpp
 
 clean:
 	rm -f client tcpepoll
