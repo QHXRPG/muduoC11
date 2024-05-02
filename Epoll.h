@@ -35,4 +35,7 @@ public:
 
     // 运行epoll_wait()，等待事件的发生，已发生的事件用vector容器返回。
     std::vector<Channel *> loop(int timeout=-1);  
+
+    //从红黑树上删除channel
+    void removechannel(Channel *ch);
 };

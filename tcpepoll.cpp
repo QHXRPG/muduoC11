@@ -1,18 +1,17 @@
-
 #include "TcpServer.h"
+#include "EchoServer.h"
 
 int main(int argc,char *argv[])
 {
     if (argc != 3) 
     { 
         printf("usage: ./tcpepoll ip port\n"); 
-        printf("example: ./tcpepoll 192.168.71.131 5085\n\n"); 
+        printf("example: ./tcpepoll 192.168.71.132 5085\n\n"); 
         return -1; 
     }
 
-    TcpServer tcpserver(argv[1],atoi(argv[2]));
-
-    tcpserver.start();      // 运行事件循环。
+    EchoServer echoserver(argv[1], atoi(argv[2]));
+    echoserver.Start();
 
     return 0;
 }

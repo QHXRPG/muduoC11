@@ -64,6 +64,7 @@ void Socket::bind(const InetAddress& servaddr)
         close(fd_); 
         exit(-1);
     }
+    setipport(servaddr.ip(), servaddr.port());
 }
 
 void Socket::listen(int nn)
@@ -84,5 +85,20 @@ int Socket::accept(InetAddress& clientaddr)
 
     clientaddr.setaddr(peeraddr);             // 客户端的地址和协议。
 
-    return clientfd;    
+    return clientfd;
+}
+
+std::string Socket::ip() const
+{
+    return ip_;
+}
+uint16_t Socket::port() const
+{
+    return port_;
+}
+
+void Socket::setipport(const std::string &ip, uint16_t port)
+{
+    ip_ = ip;
+    port_ = port;
 }

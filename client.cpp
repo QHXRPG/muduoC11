@@ -14,10 +14,9 @@ int main(int argc, char *argv[])
     if (argc != 3)
     {
         printf("usage:./client ip port\n"); 
-        printf("example:./client 192.168.150.128 5085\n\n"); 
+        printf("example:./client 192.168.71.132 5085\n\n"); 
         return -1;
     }
-
     int sockfd;
     struct sockaddr_in servaddr;
     char buf[1024];
@@ -37,25 +36,30 @@ int main(int argc, char *argv[])
     printf("connect ok.\n");
     // printf("开始时间：%d",time(0));
 
-    for (int ii=0;ii<200000;ii++)
+    for (int ii=0;ii<1;ii++)
     {
         // 从命令行输入内容。
-        memset(buf,0,sizeof(buf));
-        printf("please input:"); scanf("%s",buf);
+        memset(buf,0,sizeof(buf));            
+        sprintf(buf, "这是第%d条数据", ii);
 
-        if (send(sockfd,buf,strlen(buf),0) <=0)       // 把命令行输入的内容发送给服务端。
-        { 
-            printf("write() failed.\n");  close(sockfd);  return -1;
-        }
-        
-        memset(buf,0,sizeof(buf));
-        if (recv(sockfd,buf,sizeof(buf),0) <=0)      // 接收服务端的回应。
-        { 
-            printf("read() failed.\n");  close(sockfd);  return -1;
-        }
+        char tmpbuf[1024];                    // 临时的buffer， 报文头部+报文内容
+        memset(tmpbuf, 0, sizeof(tmpbuf));    
+        int len = strlen(buf);               // 计算报文大小
+        memcpy(tmpbuf, &len, 4);             // 拼接报文头部
+        memcpy(tmpbuf+4, buf, len);          // 拼接报文内容
+
+        send(sockfd,tmpbuf,len+4,0); // 把请求报文发送给服务端。
+    }
+
+    for (int ii=0;ii<1;ii++)
+    {
+        int len;  // 存放报头
+        recv(sockfd, &len, 4, 0);    //先读取四字节的头部
+        memset(buf, 0, sizeof(buf));
+        recv(sockfd, buf, len, 0);   // 读取报文内容
 
         printf("recv:%s\n",buf);
     }
-
-    // printf("结束时间：%d",time(0));
+    sleep(100);
+    printf("结束时间：%d",time(0));
 } 

@@ -1,6 +1,6 @@
 #include "Channel.h"
 
-Channel::Channel(EventLoop* loop,int fd)
+Channel::Channel(const std::unique_ptr<EventLoop> &loop, int fd)
 :loop_(loop),
 fd_(fd)      // 构造函数。
 {
@@ -68,58 +68,81 @@ void Channel::handleevent()
 {
     if (revents_ & EPOLLRDHUP) // 对方已关闭，有些系统检测不到，可以使用EPOLLIN，recv()返回0。
     {
-        printf("client(eventfd=%d) disconnected.\n",fd_);
-        close(fd_);            // 关闭客户端的fd。
-    }                                //  普通数据  带外数据
+        printf("EPOLLRDHUP\n");
+        closecallback_();
+    }  //  普通数据  带外数据
     else if (revents_ & (EPOLLIN|EPOLLPRI))   // 接收缓冲区中有数据可以读。
     {
+        printf("EPOLLIN|EPOLLPRI\n");
         readcallback_();
     }
     else if (revents_ & EPOLLOUT)                  // 有数据需要写，暂时没有代码，以后再说。
     {
+        printf("EPOLLOUT\n");
+        writecallback_();
     }
     else                                                                   // 其它事件，都视为错误。
     {
-        printf("client(eventfd=%d) error.\n",fd_);
-        close(fd_);            // 关闭客户端的fd。
+        printf("ERROR\n");
+        errorcallback_();
     }
 }
 
-
-
-// 处理对端发送过来的消息。
-void Channel::onmessage()
+// 设置fd_读事件的回调函数。
+void Channel::setreadcallback(std::function<void()> fn)    
 {
-    char buffer[1024];
-    while (true)             // 由于使用非阻塞IO，一次读取buffer大小数据，直到全部的数据读取完毕。
-    {    
-        bzero(&buffer, sizeof(buffer));
-        ssize_t nread = read(fd_, buffer, sizeof(buffer));
-        if (nread > 0)      // 成功的读取到了数据。
-        {
-            // 把接收到的报文内容原封不动的发回去。
-            printf("recv(eventfd=%d):%s\n",fd_,buffer);
-            send(fd_,buffer,strlen(buffer),0);
-        } 
-        else if (nread == -1 && errno == EINTR) // 读取数据的时候被信号中断，继续读取。
-        {  
-            continue;
-        } 
-        else if (nread == -1 && ((errno == EAGAIN) || (errno == EWOULDBLOCK))) // 全部的数据已读取完毕。
-        {
-            break;
-        } 
-        else if (nread == 0)  // 客户端连接已断开。
-        {  
-            printf("client(eventfd=%d) disconnected.\n",fd_);
-            close(fd_);            // 关闭客户端的fd。
-            break;
-        }
-    }
+    readcallback_ = fn;
 }
 
- // 设置fd_读事件的回调函数。
- void Channel::setreadcallback(std::function<void()> fn)    
- {
-    readcallback_=fn;
- }
+//设置fd_关闭的回调函数
+void Channel::setclosecallback(std::function<void()> fn)
+{
+    closecallback_ = fn;
+}
+
+//设置fd_发生错误的回调函数
+void Channel::seterrorcallback(std::function<void()> fn)
+{
+    errorcallback_ = fn;
+}
+
+// 取消读事件      
+void Channel::disablereading()
+{
+    events_ = events_ & ~EPOLLIN;
+    loop_->updatechannel(this);
+}
+
+//注册写事件
+void Channel::enablewriting()
+{
+    events_ = events_ | EPOLLOUT;
+    loop_->updatechannel(this);
+}
+
+//取消写事件
+void Channel::disablewriting()
+{
+    events_ = events_ & ~EPOLLOUT;
+    loop_->updatechannel(this);
+}
+
+//设置写事件的回调函数
+void Channel::setwritecallback(std::function<void()> fn)
+{
+    writecallback_ = fn;
+}
+
+//取消全部的事件
+void Channel::disableall()
+{
+    events_ = 0;
+    loop_->updatechannel(this);
+}
+
+//在从事件循环中删除channel
+void Channel::remove()
+{
+    disableall();  //取消全部的事件
+    loop_->removechannel(this); // 从红黑树上删除fd
+}

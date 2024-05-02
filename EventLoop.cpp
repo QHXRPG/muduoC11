@@ -10,7 +10,7 @@ EventLoop::EventLoop()
 // 在析构函数中销毁ep_。
 EventLoop::~EventLoop()
 {
-    delete ep_;
+    
 }
 
 // 运行事件循环。
@@ -19,13 +19,19 @@ void EventLoop::run()
     while (true)        // 事件循环。
     {
         // 等待监视的fd有事件发生。
-       std::vector<Channel *> channels = ep_->loop();         
+       std::vector<Channel *> channels = ep_->loop(10*1000);         
 
-        for (auto &ch:channels)
+        // 如果channels为空，表示超时，回调TCPServer::epolltimeout()
+        if(channels.size() == 0)
         {
-            // 处理epoll_wait()返回的事件。
-            ch->handleevent();        
+            epolltimeoutcallback_(this);
         }
+        else
+            for (auto &ch:channels)
+            {
+                // 处理epoll_wait()返回的事件。
+                ch->handleevent();        
+            }
     }
 }
 
@@ -33,4 +39,16 @@ void EventLoop::run()
 void EventLoop::updatechannel(Channel *ch)                        
 {
     ep_->updatechannel(ch);
+}
+
+
+void EventLoop::setepolltimeoutcallback(std::function<void(EventLoop*)> fn)
+{
+    epolltimeoutcallback_ = fn;
+}
+
+//从红黑树上删除channel
+void EventLoop::removechannel(Channel *ch)
+{
+    ep_->removechannel(ch);
 }

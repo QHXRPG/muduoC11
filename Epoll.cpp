@@ -24,14 +24,16 @@ void Epoll::updatechannel(Channel *ch)
     {
         if (epoll_ctl(epollfd_,EPOLL_CTL_MOD,ch->fd(),&ev)==-1)
         {
-            perror("epoll_ctl() failed.\n"); exit(-1);
+            perror("epoll_ctl() failed.\n"); 
+            exit(-1);
         }
     }
     else                           // 如果channel不在树上。
     {
         if (epoll_ctl(epollfd_,EPOLL_CTL_ADD,ch->fd(),&ev)==-1)
         {
-            perror("epoll_ctl() failed.\n"); exit(-1);
+            perror("epoll_ctl() failed.\n"); 
+            exit(-1);
         }
         ch->setinepoll();   // 把channel的inepoll_成员设置为true。
     }
@@ -54,7 +56,8 @@ std::vector<Channel *> Epoll::loop(int timeout)
     // 超时。
     if (infds == 0)
     {
-        printf("epoll_wait() timeout.\n"); return channels;
+        // 如果epoll_wait()超时，表示系统很空闲，返回的channels将为空
+        return channels;
     }
 
     // 如果infds>0，表示有事件发生的fd的数量。
@@ -66,4 +69,18 @@ std::vector<Channel *> Epoll::loop(int timeout)
     }
 
     return channels;
+}
+
+//从红黑树上删除channel
+void Epoll::removechannel(Channel *ch)
+{
+    if (ch->inpoll()) // 如果channel已经在树上了。
+    {
+        // 删除这个Channel
+        if (epoll_ctl(epollfd_, EPOLL_CTL_DEL, ch->fd(), 0)==-1)  // 删除这个Channel
+        {
+            perror("epoll_ctl() failed.\n"); 
+            exit(-1);
+        }
+    }
 }
