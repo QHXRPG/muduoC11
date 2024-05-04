@@ -23,6 +23,8 @@ private:
 
     // 存放poll_wait()返回事件的数组，在构造函数中分配内存
     epoll_event events_[MaxEvents];                  
+
+    
 public:
     // 在构造函数中创建了epollfd_。
     Epoll();                                             

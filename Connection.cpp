@@ -1,7 +1,7 @@
 #include "Connection.h"
 
 
-Connection::Connection(const std::unique_ptr<EventLoop> &loop, std::unique_ptr<Socket> clientsock)
+Connection::Connection(EventLoop *loop, std::unique_ptr<Socket> clientsock)
 :loop_(loop),
 clientsock_(std::move(clientsock)),  // unqiue赋值函数已被输出，要使用移动语义
 disconnect_(false),
@@ -12,13 +12,12 @@ clientchannel_(new Channel(loop_, clientsock_->fd()))
     clientchannel_->setclosecallback(std::bind(&Connection::closecallback, this));
     clientchannel_->seterrorcallback(std::bind(&Connection::errorcallback, this));
     clientchannel_->setwritecallback(std::bind(&Connection::writecallback, this));
-    clientchannel_->useet();                 // 客户端连上来的fd采用边缘触发。
+    clientchannel_->useet();                 // 客户端连上来的fd采用边缘触发。 
     clientchannel_->enablereading();      // 让epoll_wait()监视clientchannel的读事件
 }
 
 Connection::~Connection()
 {
-    
 }
 
 int Connection::fd() const                              // 返回fd_成员。
@@ -81,22 +80,14 @@ void Connection::onmessage()
         } 
         else if (nread == -1 && ((errno == EAGAIN) || (errno == EWOULDBLOCK))) // 全部的数据已读取完毕。
         {
+            std::string message;
             while (1)
             {
-                /**************************************************************************************/
-                //用指定报文长度的方式解决TCP粘包分包问题
-                int len;
-                memcpy(&len, inputbuffer_.data(), 4);  // 从接收缓冲区获取报文头部
+                // 如果message为空或者不完整，退出循环并继续等待
+                if(inputbuffer_.pickmessage(message) == false) break; 
 
-                //如果接收缓冲区中的数据量小于报文头部，说明inputbuffer中的报文内容不完整
-                if(inputbuffer_.size() < len + 4) break;
-
-                //如果报文内容是完整的，取出来
-                std::string message(inputbuffer_.data()+4, len);  // 从inputbuffer中获取一段报文 
-                inputbuffer_.erase(0, len+4);                     // 删除已获取的报文
-                /**************************************************************************************/
-
-                printf("recv(eventfd=%d): %s\n", fd(), message.c_str());
+                //更新时间戳
+                lastatime_ = Timestamp::now();
 
                 /*业务代码*/
                 onmessagecallback_(shared_from_this(), message);  //回调TcpServe::onmessage()
@@ -116,14 +107,34 @@ void Connection::setonmessagecallback(std::function<void(spConnection, std::stri
     onmessagecallback_ = fn;
 }
 
+// 发送数据，不管在任何线程中，都是调用此函数发送数据
 void Connection::send(const char *data, size_t size)
 {
     if(disconnect_ == true)
     {
-        printf("客户端连接已断开，send()直接返回，不发送数据\n");
         return;
     }
-    outputbuffer_.appendwithhead(data, size);  //把数据发送到Connection的发送缓冲区中
+    // 因为数据要发给其它线程处理，所以，把它包装成智能指针
+    std::shared_ptr<std::string> message(new std::string(data));
+
+    // 判断当前线程是否为事件循环线程（IO线程）
+    if(loop_->isinloopthread())
+    {
+        // 如果当前线程时IO线程， 直接 执行 发送数据的操作
+        sendinloop(message);
+    }
+    else
+    {
+        // 如果当前线程不是 IO线程， 把发送数据的操作交给IO线程去执行
+        loop_->queueinloop(std::bind(&Connection::sendinloop, this, message));
+    }
+}
+
+// 发送数据，如果当前线程是IO线程，直接调用此线程，如果是工作线程，将此函数传给IO线程
+void Connection::sendinloop(std::shared_ptr<std::string> data)
+{
+    //把数据发送到Connection的发送缓冲区中
+    outputbuffer_.appendwithsep(data->data(), data->size());  
 
     //注册写事件
     clientchannel_->enablewriting();
@@ -150,3 +161,9 @@ void Connection::setsendcompletecallback(std::function<void(spConnection)> fn)
 {
     sendcompletecallback_ = fn;
 }
+
+// 判断TCP连接是否超时（空闲太久）
+bool Connection::timeout(time_t now, int val)
+{
+     return now - lastatime_.toint() > val;  //如果大于val秒，则超时
+} 

@@ -8,6 +8,7 @@
 #include "Connection.h"
 #include "ThreadPool.h"
 #include <map>
+#include <mutex>
 #include <memory>
 
 class TcpServer
@@ -32,6 +33,9 @@ private:
     // 一个TcpServe有多个Connection对象，将其存放在map容器中
     std::map<int, spConnection> conns_;
 
+    // 保护conns_的互斥锁
+    std::mutex mmutex_;
+
     /*回调函数对象， 负责回调EchoServer类中的函数*/
     std::function<void(spConnection)> newconnectioncb_;
     std::function<void(spConnection)> closeconnectioncb_;
@@ -47,7 +51,10 @@ public:
     ~TcpServer();
 
     // 运行事件循环。
-    void start();          
+    void start();         
+
+    //停止IO线程和事件循环
+    void stop(); 
 
     void newconnection(std::unique_ptr<Socket> clientsock);
 
@@ -73,5 +80,8 @@ public:
     void onmessagecb(std::function<void(spConnection, std::string &message)> fn);
     void sendcompletecb(std::function<void(spConnection)> fn);
     void timeoutcb(std::function<void(EventLoop*)> fn);
+
+    //删除conns_中的Connection对象，在EventLoop::handletimer()中将回调此函数
+    void removeconn(int fd);
 
 };

@@ -1,5 +1,19 @@
 #include "TcpServer.h"
 #include "EchoServer.h"
+#include <signal.h>
+
+
+EchoServer *echoserver;
+
+// 信号处理函数，功能是停止服务程序
+void Stop(int sig)
+{
+    printf("sig=%d\n", sig);
+    //调用EchoServer::Stop()停止服务程序
+    echoserver->Stop();
+    delete echoserver;
+    exit(0);
+}
 
 int main(int argc,char *argv[])
 {
@@ -10,8 +24,10 @@ int main(int argc,char *argv[])
         return -1; 
     }
 
-    EchoServer echoserver(argv[1], atoi(argv[2]));
-    echoserver.Start();
+    signal(SIGINT, Stop);
+    signal(SIGTERM, Stop);
+    echoserver = new EchoServer(argv[1], atoi(argv[2]), 3, 8);
+    echoserver->Start();
 
     return 0;
 }

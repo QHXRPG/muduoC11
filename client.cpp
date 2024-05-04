@@ -34,9 +34,9 @@ int main(int argc, char *argv[])
     }
 
     printf("connect ok.\n");
-    // printf("开始时间：%d",time(0));
+    printf("开始时间：%d\n",time(0));
 
-    for (int ii=0;ii<1;ii++)
+    for (int ii=0;ii<100000;ii++)
     {
         // 从命令行输入内容。
         memset(buf,0,sizeof(buf));            
@@ -49,17 +49,12 @@ int main(int argc, char *argv[])
         memcpy(tmpbuf+4, buf, len);          // 拼接报文内容
 
         send(sockfd,tmpbuf,len+4,0); // 把请求报文发送给服务端。
-    }
 
-    for (int ii=0;ii<1;ii++)
-    {
-        int len;  // 存放报头
         recv(sockfd, &len, 4, 0);    //先读取四字节的头部
         memset(buf, 0, sizeof(buf));
         recv(sockfd, buf, len, 0);   // 读取报文内容
 
-        printf("recv:%s\n",buf);
+        // printf("recv:%s\n",buf);
     }
-    sleep(100);
-    printf("结束时间：%d",time(0));
+    printf("结束时间：%d\n",time(0));
 } 

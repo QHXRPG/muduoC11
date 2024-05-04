@@ -16,7 +16,10 @@ public:
     ~EchoServer();
 
     // 运行事件循环。
-    void Start();          
+    void Start();       
+
+    //停止服务
+    void Stop();
 
     void HandleNewConnection(spConnection conn);
 

@@ -10,9 +10,6 @@ threadtype_(threadtype)
         // 用ThreadFunction()创建线程。
 		threads_.emplace_back([this]
         {
-            printf("create %s thread(%d).\n", threadtype_.c_str(), syscall(SYS_gettid));     // 显示线程类型和ID。
-            std::cout << "子线程：" << std::this_thread::get_id() << std::endl;
-
             while (stop_ == false)
             {
                 std::function<void()> task;       // 用于存放出队的元素。
@@ -34,8 +31,6 @@ threadtype_(threadtype)
                     task = std::move(this->taskqueue_.front());  // 采用移动语义，避免拷贝操作
                     this->taskqueue_.pop();
                 }   /****************锁作用域的结束。锁自动释放****************/
-
-                printf("thread is (%s)%d.\n",threadtype_.c_str(),syscall(SYS_gettid));
                 task();  // 执行任务。
             }
         });
@@ -55,6 +50,18 @@ void ThreadPool::addtask(std::function<void()> task)
 
 ThreadPool::~ThreadPool()
 {
+    stop();
+}
+
+size_t ThreadPool::size()
+{
+    return threads_.size();
+}
+
+// 停止线程
+void ThreadPool::stop()
+{
+    if(stop_) return; // 如果已经停止，退出
 	stop_ = true;
 
 	condition_.notify_all();  // 唤醒全部的线程。

@@ -1,6 +1,6 @@
 #include "Channel.h"
 
-Channel::Channel(const std::unique_ptr<EventLoop> &loop, int fd)
+Channel::Channel(EventLoop *loop, int fd)
 :loop_(loop),
 fd_(fd)      // 构造函数。
 {
@@ -68,22 +68,18 @@ void Channel::handleevent()
 {
     if (revents_ & EPOLLRDHUP) // 对方已关闭，有些系统检测不到，可以使用EPOLLIN，recv()返回0。
     {
-        printf("EPOLLRDHUP\n");
         closecallback_();
     }  //  普通数据  带外数据
     else if (revents_ & (EPOLLIN|EPOLLPRI))   // 接收缓冲区中有数据可以读。
     {
-        printf("EPOLLIN|EPOLLPRI\n");
         readcallback_();
     }
     else if (revents_ & EPOLLOUT)                  // 有数据需要写，暂时没有代码，以后再说。
     {
-        printf("EPOLLOUT\n");
         writecallback_();
     }
-    else                                                                   // 其它事件，都视为错误。
+    else // 其它事件，都视为错误。
     {
-        printf("ERROR\n");
         errorcallback_();
     }
 }
