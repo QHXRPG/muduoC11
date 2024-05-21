@@ -24,6 +24,8 @@ private:
 	// 线程池中的线程。
 	std::vector<std::thread> threads_;
 
+	int a;
+
 	// 生产消费者模型的任务队列。  队列中的元素是函数对象
 	std::queue<std::function<void()>> taskqueue_; 
 
